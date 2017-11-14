@@ -42,7 +42,7 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
             [mail setSubject:subject];
         }
         
-        bool *isHTML = NO;
+        BOOL isHTML = NO;
         
         if (options[@"isHTML"]){
             isHTML = [options[@"isHTML"] boolValue];
@@ -78,8 +78,11 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
                 attachmentName = [[attachmentPath lastPathComponent] stringByDeletingPathExtension];
             }
 
-            // Get the resource path and read the file using NSData
-            NSData *fileData = [NSData dataWithContentsOfFile:attachmentPath];
+            NSURL *URL = [RCTConvert NSURL:attachmentPath];
+            NSError *error;
+            NSData *fileData = [NSData dataWithContentsOfURL:URL
+                                                     options:(NSDataReadingOptions)0
+                                                       error:&error];
 
             // Determine the MIME type
             NSString *mimeType;
@@ -131,9 +134,21 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
         while (root.presentedViewController) {
             root = root.presentedViewController;
         }
-        [root presentViewController:mail animated:YES completion:nil];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [root presentViewController:mail animated:YES completion:nil];
+        });
     } else {
-        callback(@[@"not_available"]);
+        NSString *subject = options[@"subject"] ? [RCTConvert NSString:options[@"subject"]] : @"";
+        NSString *escapedSubject = [subject stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]]; // urlencodedString
+        
+        NSArray *recipients = options[@"recipients"] ? [RCTConvert NSArray:options[@"recipients"]] : nil;
+        NSString *recipientsStr = [recipients componentsJoinedByString:@","];
+        
+        NSString *body = options[@"body"] ? [RCTConvert NSString:options[@"body"]] : @"";
+        NSString *escapedBody = [body stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]]; // urlencodedString
+        
+        NSString *mailto = [NSString stringWithFormat:@"mailto:%@?subject=%@&body=%@", recipientsStr, escapedSubject, escapedBody];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:mailto]];
     }
 }
 

@@ -4,7 +4,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import android.os.Environment;
+import android.os.Parcelable;
 import android.text.Html;
+import android.util.Log;
+import android.webkit.URLUtil;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -53,8 +57,15 @@ public class RNMailModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void mail(ReadableMap options, Callback callback) {
-    Intent i = new Intent(Intent.ACTION_SENDTO);
-    i.setData(Uri.parse("mailto:"));
+    Intent i;
+
+    if (options.hasKey("attachment") && !options.isNull("attachment")) {
+      i = new Intent(Intent.ACTION_SEND);
+      i.setType("vnd.android.cursor.dir/email");
+    } else {
+      i = new Intent(Intent.ACTION_SENDTO);
+      i.setData(Uri.parse("mailto:"));
+    }
 
     if (options.hasKey("subject") && !options.isNull("subject")) {
       i.putExtra(Intent.EXTRA_SUBJECT, options.getString("subject"));
@@ -63,7 +74,7 @@ public class RNMailModule extends ReactContextBaseJavaModule {
     if (options.hasKey("body") && !options.isNull("body")) {
       String body = options.getString("body");
       if (options.hasKey("isHTML") && options.getBoolean("isHTML")) {
-        i.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(body));
+        i.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(body).toString());
       } else {
         i.putExtra(Intent.EXTRA_TEXT, body);
       }
@@ -88,9 +99,11 @@ public class RNMailModule extends ReactContextBaseJavaModule {
       ReadableMap attachment = options.getMap("attachment");
       if (attachment.hasKey("path") && !attachment.isNull("path")) {
         String path = attachment.getString("path");
-        File file = new File(path);
-        Uri p = Uri.fromFile(file);
-        i.putExtra(Intent.EXTRA_STREAM, p);
+        
+        // Create the Uri from the media
+        Uri uri = Uri.parse(path);
+        Uri main = Uri.parse("content://com.mimi_stelladot.providers/img/"+uri.getLastPathSegment());
+        i.putExtra(Intent.EXTRA_STREAM, main);
       }
     }
 
