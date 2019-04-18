@@ -18,7 +18,16 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.Callback;
 
 import java.util.List;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.channels.FileChannel;
 
 /**
  * NativeModule that allows JS to open emails sending apps chooser.
@@ -56,7 +65,7 @@ public class RNMailModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void mail(ReadableMap options, Callback callback) {
+  public void mail(ReadableMap options, Callback callback) throws IOException {
     Intent i;
 
     if (options.hasKey("attachment") && !options.isNull("attachment")) {
@@ -98,10 +107,24 @@ public class RNMailModule extends ReactContextBaseJavaModule {
     if (options.hasKey("attachment") && !options.isNull("attachment")) {
       ReadableMap attachment = options.getMap("attachment");
       if (attachment.hasKey("path") && !attachment.isNull("path")) {
+
         String path = attachment.getString("path");
+
+        Uri uri;
+        boolean isWebUrl = path.startsWith("http");
+        if (isWebUrl) {
+            byte[] response = this.downloadFile(path);
+
+            long unixTime = System.currentTimeMillis() / 1000L;
+            String outputPath = reactContext.getCacheDir().getAbsolutePath() + "/mail" + String.valueOf(unixTime) + ".jpg";
+
+            this.writeDownloadedFile(response, outputPath);
+
+            uri = Uri.parse(outputPath);
+        } else {
+            uri = Uri.parse(path);
+        }
         
-        // Create the Uri from the media
-        Uri uri = Uri.parse(path);
         Uri main = Uri.parse("content://com.mimi_stelladot.providers/img/"+uri.getLastPathSegment());
         i.putExtra(Intent.EXTRA_STREAM, main);
       }
@@ -132,5 +155,28 @@ public class RNMailModule extends ReactContextBaseJavaModule {
         callback.invoke("error");
       }
     }
+  }
+
+  private byte[] downloadFile(String webURL) throws IOException {
+    URL url = new URL(webURL);
+    InputStream in = new BufferedInputStream(url.openStream());
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] buf = new byte[1024];
+    int n = 0;
+    while (-1!=(n=in.read(buf)))
+    {
+        out.write(buf, 0, n);
+    }
+    out.close();
+    in.close();
+    byte[] response = out.toByteArray();
+    return response;
+  }
+
+  private void writeDownloadedFile(byte[] data, String outputPath) throws IOException {
+    FileOutputStream fos = new FileOutputStream(outputPath);
+    fos.write(data);
+    fos.flush();
+    fos.close();
   }
 }
