@@ -62,7 +62,7 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
             NSArray *ccRecipients = [RCTConvert NSArray:options[@"ccRecipients"]];
             [mail setCcRecipients:ccRecipients];
         }
-        
+
         if (options[@"bccRecipients"]){
             NSArray *bccRecipients = [RCTConvert NSArray:options[@"bccRecipients"]];
             [mail setBccRecipients:bccRecipients];
@@ -86,7 +86,7 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
 
             // Determine the MIME type
             NSString *mimeType;
-            
+
             /*
              * Add additional mime types and PR if necessary. Find the list
              * of supported formats at http://www.iana.org/assignments/media-types/media-types.xhtml
@@ -97,8 +97,12 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
                 mimeType = @"image/png";
             } else if ([attachmentType isEqualToString:@"doc"]) {
                 mimeType = @"application/msword";
+            } else if ([attachmentType isEqualToString:@"docx"]) {
+                mimeType = @"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             } else if ([attachmentType isEqualToString:@"ppt"]) {
                 mimeType = @"application/vnd.ms-powerpoint";
+            } else if ([attachmentType isEqualToString:@"pptx"]) {
+                mimeType = @"application/vnd.openxmlformats-officedocument.presentationml.presentation";
             } else if ([attachmentType isEqualToString:@"html"]) {
                 mimeType = @"text/html";
             } else if ([attachmentType isEqualToString:@"csv"]) {
@@ -123,6 +127,12 @@ RCT_EXPORT_METHOD(mail:(NSDictionary *)options
                 mimeType = @"audio/flac";
             } else if ([attachmentType isEqualToString:@"ogg"]) {
                 mimeType = @"audio/ogg";
+            } else if ([attachmentType isEqualToString:@"xls"]) {
+                mimeType = @"application/vnd.ms-excel";
+            } else if ([attachmentType isEqualToString:@"ics"]) {
+                mimeType = @"text/calendar"; 
+            } else if ([attachmentType isEqualToString:@"xlsx"]) {
+                mimeType = @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             }
 
             // Add attachment
